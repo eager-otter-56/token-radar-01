@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token Launch Radar — pre-token protocols ranked by implied launch value</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<!-- Token Launch Radar, model radar-3. One static page, no network:
+     the board arrives as window.RADAR in ../data.js and every view —
+     board, detail, filtered, live — is rendered from it in place. -->
+<a class="skip" href="#board">Skip to the board</a>
+<main id="app" aria-busy="true">
+  <p class="loading">Sweeping the snapshot…</p>
+</main>
+<script src="../data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
