@@ -1,19 +1,125 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Token Launch Radar — pre-token protocols ranked by implied launch value</title>
-<link rel="stylesheet" href="app.css">
+<title>Token Launch Radar — radar-4</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<!-- Token Launch Radar, model radar-3. One static page, no network:
-     the board arrives as window.RADAR in ../data.js and every view —
-     board, detail, filtered, live — is rendered from it in place. -->
-<a class="skip" href="#board">Skip to the board</a>
-<main id="app" aria-busy="true">
-  <p class="loading">Sweeping the snapshot…</p>
+<header class="masthead">
+  <div class="masthead-inner">
+    <div>
+      <h1>TOKEN LAUNCH RADAR</h1>
+      <p class="tagline">Pre-token protocols ranked by a launch value fitted to the snapshot's own launched peers. Model <strong>radar-4</strong> · snapshot as of <span id="as-of">—</span></p>
+    </div>
+    <div class="stats" id="stats"></div>
+  </div>
+</header>
+
+<main>
+  <section class="panel model-panel" id="model-panel">
+    <h2>Model &amp; validation</h2>
+    <div class="model-grid">
+      <div class="model-text">
+        <p><strong>Size curve first.</strong> Among the protocols in this snapshot that already
+        launched a token, market cap follows TVL along a power law. radar-4 fits that curve by
+        ordinary least squares on log–log axes: <em>value = e<sup>α</sup> · TVL<sup>β</sup></em>,
+        using only the snapshot's own figures — nothing is hardcoded and no live prices are fetched.</p>
+        <p><strong>Category relative factor.</strong> Each category trades above or below the size
+        curve. The factor is the median ratio of actual to curve-fitted market cap among the
+        category's launched peers, shrunk toward 1.0 (prior weight 6) and clamped to
+        [0.30, 2.50], so thin categories cannot dominate the board.</p>
+        <p><strong>Adjustments.</strong> The base value is then scaled by 7-day TVL growth
+        (clamped, weight 0.35), by maturity (a protocol listed longer earns up to the full
+        factor over three years), and by chain breadth (up to +15% for five extra chains).
+        The band around each value is the model's own residual spread on its peers:
+        one standard deviation of log residuals, applied symmetrically.</p>
+        <p><strong>Holdout honesty check.</strong> The peer set is split deterministically
+        (sorted by slug; even positions fit, odd positions are predicted). The table shows
+        median absolute log error (MedALE — lower is better) and the share of predictions
+        landing within a factor of two of the actual market cap, for radar-4 against the
+        previous radar-3 style category multiples and a single flat multiple.</p>
+      </div>
+      <div class="model-numbers">
+        <dl class="fit-list">
+          <div><dt>Peers fitted</dt><dd id="fit-peers">—</dd></div>
+          <div><dt>α (intercept)</dt><dd id="fit-alpha">—</dd></div>
+          <div><dt>β (size slope)</dt><dd id="fit-beta">—</dd></div>
+          <div><dt>Residual SD (log)</dt><dd id="fit-sd">—</dd></div>
+          <div><dt>Holdout split</dt><dd id="fit-split">—</dd></div>
+        </dl>
+        <table class="validation-table">
+          <thead>
+            <tr><th>Model</th><th>MedALE</th><th>Within 2×</th></tr>
+          </thead>
+          <tbody id="validation-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <aside class="panel detail-panel hidden" id="detail-panel">
+    <button id="detail-close" type="button" aria-label="Close detail">×</button>
+    <div id="detail-content"></div>
+  </aside>
+
+  <section class="panel board-panel">
+    <div class="board-head">
+      <div class="tabs" role="tablist">
+        <button id="tab-board" class="tab active" type="button">Pre-token board</button>
+        <button id="tab-live" class="tab" type="button">Live tokens (set aside)</button>
+      </div>
+      <div class="controls">
+        <input id="search" type="search" placeholder="Search name or slug…" aria-label="Search">
+        <select id="filter-category" aria-label="Category"><option value="">All categories</option></select>
+        <select id="filter-chain" aria-label="Chain"><option value="">All chains</option></select>
+        <select id="filter-tvl" aria-label="Minimum TVL">
+          <option value="0">Any TVL</option>
+          <option value="50000000">$50M+</option>
+          <option value="100000000">$100M+</option>
+          <option value="250000000">$250M+</option>
+          <option value="1000000000">$1B+</option>
+        </select>
+        <label class="wl-toggle"><input id="filter-watchlist" type="checkbox"> Watchlist only ★</label>
+      </div>
+    </div>
+    <p class="row-count" id="row-count"></p>
+    <p class="hint">Click any row for the full factor breakdown and its 7-step farm plan. Column headers sort the board.</p>
+    <div class="table-wrap">
+      <table class="board-table" id="board-table">
+        <thead>
+          <tr>
+            <th data-key="rank">Rank</th>
+            <th data-key="name">Protocol</th>
+            <th data-key="category">Category</th>
+            <th data-key="tvl_usd" class="num">TVL</th>
+            <th data-key="change_7d_pct" class="num">7d %</th>
+            <th data-key="implied_value_usd" class="num">Implied value</th>
+            <th class="num">Band</th>
+            <th data-key="mult" class="num">×TVL</th>
+            <th data-key="watchlist">★</th>
+          </tr>
+        </thead>
+        <tbody id="board-body"></tbody>
+      </table>
+      <table class="board-table hidden" id="live-table">
+        <thead>
+          <tr><th>Protocol</th><th>Category</th><th class="num">TVL</th><th class="num">Market cap</th><th class="num">×TVL</th></tr>
+        </thead>
+        <tbody id="live-body"></tbody>
+      </table>
+    </div>
+  </section>
 </main>
+
+<footer>
+  <p>Eligibility is strict: a protocol must have no market cap, no CoinGecko id and no symbol;
+  bridge, canonical bridge, liquid staking, liquid restaking, restaked BTC and exchange categories are out,
+  as are versioned re-launches, wrapped or staked products and exchange-branded names.
+  Live tokens are never ranked — they are the calibration set, shown on their own tab.</p>
+</footer>
+
 <script src="../data.js"></script>
 <script src="app.js"></script>
 </body>
