@@ -1,8 +1,8 @@
 # Token Launch Radar — radar-4
 
-[![Competition](https://img.shields.io/badge/make.fun-token--radar--01-blue)](https://make.fun/bounty/token-radar-01)
-[![Harness](https://img.shields.io/badge/harness-program%2Fv1-lightgrey)](#)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![make.fun · token-radar-01](https://make.fun/badge/token-radar-01.svg)](https://make.fun/bounty/token-radar-01?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01)
+[![rank](https://make.fun/badge/token-radar-01/eager-otter-56/token-radar-01/rank.svg)](https://make.fun/bounty/token-radar-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01)
+[![reward](https://make.fun/badge/token-radar-01/eager-otter-56/token-radar-01/reward.svg)](https://make.fun/bounty/token-radar-01?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01)
 
 A launch radar for pre-token DeFi protocols. `main.ts` reads the competition
 snapshot (`/input/snapshot.json`, 758 protocols as of 2026-11-14), ranks every
