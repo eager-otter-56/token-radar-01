@@ -13,15 +13,52 @@
 // it was dropped. Token odds come from a logistic fit on the snapshot's own
 // token record. Farm verdicts are arithmetic on stated assumptions.
 //
+// I/O follows the kit starter's contract: --input <snapshot.json|directory>
+// (default /input, a directory means <dir>/snapshot.json), --output <dir>
+// else MAKEFUN_OUTPUT_DIR else /output; the old positional form
+// (node main.ts <snapshot> <outdir>) is still accepted as a fallback.
+// dashboard/ and screenshots/ are copied from the directory that holds this
+// file, never from the working directory.
+//
 // Deterministic: the only randomness is a seeded mulberry32 PRNG; every
 // iterative fit runs a fixed iteration count. Two runs write identical bytes.
 
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-board.ts';
 
-const INPUT = process.argv[2] ?? '/input/snapshot.json';
-const OUTPUT = process.argv[3] ?? '/output';
+const here = fileURLToPath(new URL('.', import.meta.url));
+
+/** --name <value> out of the arguments, or the fallback. */
+function arg(name: string, fallback: string): string {
+  const at = process.argv.indexOf(`--${name}`);
+  if (at >= 0 && at + 1 < process.argv.length) return process.argv[at + 1]!;
+  const withEquals = process.argv.find((a) => a.startsWith(`--${name}=`));
+  return withEquals === undefined ? fallback : withEquals.slice(name.length + 3);
+}
+
+/** Positional arguments, skipping flag values (--input/--output and their values). */
+function positionalArgs(): string[] {
+  const out: string[] = [];
+  const argv = process.argv.slice(2);
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]!;
+    if (a === '--input' || a === '--output') { i++; continue; }
+    if (a.startsWith('--')) continue;
+    out.push(a);
+  }
+  return out;
+}
+
+const POS = positionalArgs();
+const inputArg = arg('input', POS[0] ?? '/input');
+const INPUT = inputArg.endsWith('.json') ? inputArg : join(inputArg, 'snapshot.json');
+if (!existsSync(INPUT)) {
+  process.stderr.write(`radar-5: no snapshot at ${INPUT}: pass --input <snapshot.json|directory> or mount the sealed /input\n`);
+  process.exit(2);
+}
+const OUTPUT = arg('output', process.env.MAKEFUN_OUTPUT_DIR ?? POS[1] ?? '/output');
 const AS_OF_MS = Date.UTC(2026, 10, 14); // snapshot as_of 2026-11-14
 
 // ---------------------------------------------------------------- snapshot
@@ -903,11 +940,22 @@ const META = {
 mkdirSync(OUTPUT, { recursive: true });
 writeFileSync(join(OUTPUT, 'board.json'), JSON.stringify(ROWS, null, 1) + '\n');
 writeFileSync(join(OUTPUT, 'data.js'), 'window.RADAR = ' + JSON.stringify({ meta: META, rows: ROWS, live: LIVE }) + ';\n');
+// Copy the dashboard and screenshots from the directory holding this file,
+// never from the working directory. A missing source dir is a warning, not
+// a crash — but it must not be missing in the submitted repository.
 for (const dir of ['dashboard', 'screenshots']) {
-  const src = join(process.cwd(), dir);
+  const src = join(here, dir);
   const dst = join(OUTPUT, dir);
   mkdirSync(dst, { recursive: true });
-  if (existsSync(src)) for (const f of readdirSync(src)) copyFileSync(join(src, f), join(dst, f));
+  if (!existsSync(src)) {
+    process.stderr.write(`radar-5: warning: ${dir}/ not found next to main.ts; skipping\n`);
+    continue;
+  }
+  for (const f of readdirSync(src)) {
+    if (f.startsWith('.')) continue;
+    const p = join(src, f);
+    if (statSync(p).isFile()) copyFileSync(p, join(dst, f));
+  }
 }
 writeFileSync(join(OUTPUT, 'dossier.json'), buildDossier(OUTPUT, { text_max_bytes: 65536 }));
 console.log(`radar-5: ${ROWS.length} rows, estimator ${ESTIMATOR}, kept terms [${keptTerms.join(', ') || 'none'}]`);
