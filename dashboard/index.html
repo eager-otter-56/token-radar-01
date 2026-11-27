@@ -3,80 +3,60 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Token launch radar: pre-token protocols ranked by a fitted, out-of-sample-tested implied launch value, with token odds and farm verdicts.">
-<title>Launch Radar — radar-5</title>
+<title>Token Launch Radar — radar-5</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header>
-  <div class="hrow">
-    <div>
-      <h1>Launch Radar</h1>
-      <p class="sub">Pre-token protocols, valued from their own record — model <b>radar-5</b>, refitted in this browser's data file</p>
-    </div>
-    <p class="asof" id="asof"></p>
-  </div>
-  <p class="formula"><b>Implied value = value if it launches &times; odds it launches.</b>
-  The value is a size curve fitted on the snapshot's launched peers; every adjustment term had to earn its place out-of-sample (below) or it was dropped.
-  Odds are the share of comparable peers that record a token, by age and size. Young protocols are censored: no token yet is not never.</p>
+  <h1>TOKEN LAUNCH RADAR</h1>
+  <p class="sub">Pre-token protocols ranked by implied launch value — every number computed from the snapshot itself, at run time.</p>
 </header>
 
-<section class="kpis" id="kpis"></section>
+<section id="digest"></section>
 
-<section class="panel">
-  <h2>Protocol accounting — every snapshot protocol in exactly one group</h2>
-  <div class="acctbar" id="acctbar"></div>
-  <p class="acctlegend" id="acctlegend"></p>
-  <p class="integrity" id="integrity"></p>
+<section id="kpis"></section>
+
+<section id="ledger"></section>
+
+<p id="integrity"></p>
+
+<section id="evidence">
+  <h2>Evidence — every term had to earn its place</h2>
+  <p class="note">A term ships only if it lowers the out-of-sample median absolute log error on <b>all three</b> protocols — leave-one-out (P1), walk-forward by listing date (P2), slug-parity split (P3) — with a bootstrap 90% CI excluding zero.</p>
+  <div id="ablation"></div>
+  <div id="bakeoff"></div>
+  <div id="modelcmp"></div>
+  <div id="odds"></div>
+  <div id="scatter"></div>
 </section>
 
-<section class="panel">
-  <h2>Out-of-sample evidence — nothing here is tuned on the numbers it is judged by</h2>
-  <div class="evgrid">
-    <div>
-      <h3>Term ablation (median absolute log error, lower is better)</h3>
-      <table class="ev" id="ablation"></table>
-      <p class="note" id="bakeoff"></p>
-      <p class="note" id="modelcmp"></p>
-    </div>
-    <div>
-      <h3>Token odds — proper scores, held out</h3>
-      <p class="note" id="oddspanel"></p>
-      <h3>Value if it launches vs the peers that did (log–log)</h3>
-      <div id="scatter"></div>
-    </div>
+<section id="scenario">
+  <h2>Farm verdicts — arithmetic on stated assumptions</h2>
+  <div id="controls">
+    <label>Drop share <input type="range" id="drop" min="1" max="20" step="0.5" value="7.5"> <span id="dropv"></span></label>
+    <label>Ticket scale <input type="range" id="tscale" min="0.25" max="4" step="0.25" value="1"> <span id="tscalev"></span></label>
+    <span id="vcounts"></span>
   </div>
+  <p class="note">Ticket = 0.02% of TVL, clamped $250–$10,000. FARM needs net &gt; 0 and net ≥ $15/h. Verdicts recompute live as you move the sliders.</p>
+  <div id="closest"></div>
 </section>
 
-<section class="panel scen">
-  <h2>Farm scenario</h2>
-  <label>Drop share <input type="range" id="drop" min="1" max="20" step="0.5" value="7.5"><b id="dropv"></b></label>
-  <label>Ticket scale <input type="range" id="scale" min="0.25" max="4" step="0.25" value="1"><b id="scalev"></b></label>
-  <p class="note">Verdicts recompute live. Default: 7.5% of the launch value goes to farmers; ticket = 0.02% of TVL, clamped to $250–$10,000.
-  FARM needs a positive net that also pays &ge; $15/hour of the plan's time (a T-bill pays ~4% for none); MARGINAL is a positive net below that hurdle; SKIP loses money.
-  Verdict stability counts how often the default verdict survives a 3&times;3 grid of drop shares and ticket scales.</p>
-</section>
-
-<section class="panel">
-  <div class="controls">
-    <div class="tabs"><button id="tab-board" class="on">Board</button><button id="tab-live">Live tokens</button></div>
+<section id="boardsec">
+  <h2 id="boardtitle">The board</h2>
+  <div id="filters">
     <input type="search" id="q" placeholder="Search name or slug">
     <select id="fcat"><option value="">All categories</option></select>
     <select id="fchain"><option value="">All chains</option></select>
-    <select id="ftvl"><option value="0">Any TVL</option><option value="50000000">$50M+</option><option value="250000000">$250M+</option><option value="1000000000">$1B+</option></select>
-    <label class="wl"><input type="checkbox" id="fwl"> Watchlist only</label>
-    <span class="count" id="count"></span>
+    <select id="ftvl"><option value="0">Any TVL</option><option value="10000000">TVL ≥ $10M</option><option value="50000000">TVL ≥ $50M</option><option value="100000000">TVL ≥ $100M</option><option value="500000000">TVL ≥ $500M</option></select>
+    <label><input type="checkbox" id="fwatch"> Watchlist only</label>
+    <span class="tabs"><button id="tab-board" class="on">Board</button><button id="tab-live">Live tokens</button></span>
   </div>
-  <div id="detail"></div>
-  <div class="twrap"><table id="board"></table></div>
+  <div id="tablewrap"></div>
 </section>
 
-<footer>
-  <p>Eligibility, stated once and applied to all: a protocol is ranked only when the snapshot records no token for it
-  (no market cap, no symbol, no Gecko id) and it is not a bridge, liquid-staking, restaking or exchange product, not a
-  versioned re-listing, and not a wrapped or staked product of an asset that already trades. Everything else is set
-  aside in the accounting above, never silently dropped.</p>
-</footer>
+<section id="detail"></section>
+
+<footer><p id="foot"></p></footer>
 <script src="../data.js"></script>
 <script src="app.js"></script>
 </body>
